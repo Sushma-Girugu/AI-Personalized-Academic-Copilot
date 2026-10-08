@@ -1,0 +1,38 @@
+# IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Java / Maven
+backend/target/
+**/target/
+
+# Node / React
+frontend/node_modules/
+**/node_modules/
+frontend/dist/
+**/dist/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Spring local configuration
+application-local.properties
+application-local.yml
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Uploaded/generated local files
+uploads/
+# Local API testing files
+backend/cookies.txt
+backend/login.json
+backend/register.json
