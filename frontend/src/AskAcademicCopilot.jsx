@@ -1,6 +1,5 @@
 import { useState } from "react";
-
-const API = "http://localhost:8080";
+import { API } from "./config";
 
 function AskAcademicCopilot({ onBack }) {
 

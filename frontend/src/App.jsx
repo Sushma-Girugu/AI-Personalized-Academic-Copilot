@@ -10,8 +10,7 @@ import WeakTopics from "./WeakTopics";
 import StudyPlan from "./StudyPlan";
 import AskAcademicCopilot from "./AskAcademicCopilot";
 
-const API = "http://localhost:8080";
-
+import { API } from "./config";
 function App() {
 
   // =====================================================

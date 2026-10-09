@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 
-const API = "http://localhost:8080";
-
+import { API } from "./config";
 function WeakTopics({ onBack, onPracticeTopic }) {
 
     const [weakTopics, setWeakTopics] = useState([]);
