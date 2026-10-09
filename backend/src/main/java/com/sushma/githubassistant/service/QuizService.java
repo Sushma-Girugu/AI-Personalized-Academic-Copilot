@@ -163,13 +163,17 @@ public class QuizService {
 
 
         // =================================================
-        // 5. CHECK WHETHER TOPIC EXISTS IN MATERIAL
+        // 5. CHECK TOPIC IN QDRANT RESULTS AND EXTRACTED TEXT
         // =================================================
 
-        if (!isTopicRelevant(
-                cleanTopic,
-                documents
-        )) {
+        boolean topicFoundInVectorResults =
+                isTopicRelevant(cleanTopic, documents);
+
+        boolean topicFoundInExtractedText =
+                isTopicRelevantInText(cleanTopic, extractedText);
+
+        if (!topicFoundInVectorResults &&
+                !topicFoundInExtractedText) {
 
             throw new RuntimeException(
                     "The topic '" +
@@ -182,35 +186,32 @@ public class QuizService {
 
         // =================================================
         // 6. BUILD CONTEXT
+        // Use Qdrant chunks when relevant. If Qdrant returns
+        // no useful chunks, fall back to the selected PDF's
+        // already-extracted text instead of rejecting a valid topic.
         // =================================================
 
         StringBuilder context =
                 new StringBuilder();
 
+        if (topicFoundInVectorResults) {
 
-        for (Document document :
-                documents) {
+            for (Document document : documents) {
 
-            if (document.getText() != null &&
-                    !document.getText()
-                            .trim()
-                            .isEmpty()) {
+                if (document.getText() != null &&
+                        !document.getText().trim().isEmpty()) {
 
-                context.append(
-                        document.getText()
-                );
-
-                context.append(
-                        "\n\n"
-                );
+                    context.append(document.getText());
+                    context.append("\n\n");
+                }
             }
         }
 
+        if (context.toString().trim().isEmpty()) {
+            context.append(extractedText);
+        }
 
-        if (context
-                .toString()
-                .trim()
-                .isEmpty()) {
+        if (context.toString().trim().isEmpty()) {
 
             throw new RuntimeException(
                     "No relevant study material was found for this topic."
@@ -781,7 +782,70 @@ public class QuizService {
 
 
     // =====================================================
-    // TOPIC RELEVANCE CHECK
+    // TOPIC RELEVANCE CHECK AGAINST EXTRACTED PDF TEXT
+    // =====================================================
+
+    private boolean isTopicRelevantInText(
+            String topic,
+            String text) {
+
+        if (topic == null || topic.trim().isEmpty() ||
+                text == null || text.trim().isEmpty()) {
+            return false;
+        }
+
+        String topicLower = topic
+                .toLowerCase()
+                .replaceAll("[^a-z0-9 ]", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+
+        String textLower = text
+                .toLowerCase()
+                .replaceAll("[^a-z0-9 ]", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+
+        String[] words = topicLower.split(" ");
+        int meaningfulWords = 0;
+
+        for (String word : words) {
+
+            if (word.length() < 3) {
+                continue;
+            }
+
+            if (word.equals("the") ||
+                    word.equals("and") ||
+                    word.equals("for") ||
+                    word.equals("from") ||
+                    word.equals("with") ||
+                    word.equals("using") ||
+                    word.equals("algorithm") ||
+                    word.equals("concept") ||
+                    word.equals("topic") ||
+                    word.equals("method") ||
+                    word.equals("problem")) {
+                continue;
+            }
+
+            meaningfulWords++;
+
+            // Match complete words, not partial words.
+            if (java.util.Arrays.asList(textLower.split(" "))
+                    .contains(word)) {
+                return true;
+            }
+        }
+
+        // Generic topics are allowed through validation; Gemini is
+        // still instructed to use only the supplied study material.
+        return meaningfulWords == 0;
+    }
+
+
+    // =====================================================
+    // TOPIC RELEVANCE CHECK AGAINST QDRANT DOCUMENTS
     // =====================================================
 
     private boolean isTopicRelevant(
